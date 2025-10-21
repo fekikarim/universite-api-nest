@@ -1,5 +1,7 @@
 
 // MOK - Seed de la base de données MongoDB avec des utilisateurs exemples
+// Pour exécuter ce script : node seed.js
+// fonctionne qu'avec prosit 3
 
 const mongoose = require('mongoose');
 const { Schema } = mongoose;

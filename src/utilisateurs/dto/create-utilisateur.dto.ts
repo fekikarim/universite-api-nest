@@ -1,5 +1,5 @@
 import { Type } from "class-transformer";
-import { IsEmail, IsNotEmpty, IsInt, Min, IsString, IsOptional } from "class-validator";
+import { IsEmail, IsNotEmpty, IsInt, Min, IsString, IsOptional, IsIn } from "class-validator";
 
 export class CreateUtilisateurDto {
     @IsNotEmpty()
@@ -28,4 +28,14 @@ export class CreateUtilisateurDto {
     @IsOptional()
     @IsString()
     avatar: string;
+
+    // prosit 4 new fields
+    @IsNotEmpty()
+    @IsString()
+    password: string;
+
+    @IsNotEmpty()
+    @IsString()
+    @IsIn(['ADMIN', 'ETUDIANT'])
+    role: string;
 }

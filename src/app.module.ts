@@ -7,6 +7,8 @@ import { AppService } from './app.service';
 import { UtilisateursModule } from './utilisateurs/utilisateurs.module';
 import { OptionsModule } from './options/options.module';
 import { LoggerMiddleware } from './logger/logger.middleware';
+import { AuthModule } from './auth/auth.module';
+import { AdminModule } from './utilisateurs/admin.module';
 
 @Module({
   imports: [
@@ -25,7 +27,9 @@ import { LoggerMiddleware } from './logger/logger.middleware';
     }),
 
     UtilisateursModule,
+    AdminModule,
     OptionsModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
