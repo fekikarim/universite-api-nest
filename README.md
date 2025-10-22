@@ -143,15 +143,21 @@ Règles d’accès:
 
 ## Exemples de requêtes (cURL)
 
+// Utilisez des variables d'environnement pour éviter de laisser des identifiants dans l'historique shell
+export ADMIN_EMAIL="admin@example.tn"
+export ADMIN_PASSWORD="<ADMIN_PASSWORD>"        # remplacez par votre mot de passe admin réel (ne pas commiter)
+export STUDENT_EMAIL="student@example.tn"
+export STUDENT_PASSWORD="<STUDENT_PASSWORD>"    # remplacez par votre mot de passe étudiant réel (ne pas commiter)
+
 Créer un ADMIN:
 
 ```bash
 curl -X POST http://localhost:3000/api/auth/register \
   -H "Content-Type: application/json" \
-  -d '{
-    "firstName":"Admin","lastName":"User","studentId":"ADMIN001",
-    "email":"admin@example.tn","age":30,"password":"admin123","role":"ADMIN"
-  }'
+  -d "{
+    \"firstName\":\"Admin\",\"lastName\":\"User\",\"studentId\":\"ADMIN001\",
+    \"email\":\"$ADMIN_EMAIL\",\"age\":30,\"password\":\"$ADMIN_PASSWORD\",\"role\":\"ADMIN\"
+  }"
 ```
 
 Créer un ETUDIANT:
@@ -159,10 +165,10 @@ Créer un ETUDIANT:
 ```bash
 curl -X POST http://localhost:3000/api/auth/register \
   -H "Content-Type: application/json" \
-  -d '{
-    "firstName":"Student","lastName":"User","studentId":"STU001",
-    "email":"student@example.tn","age":22,"password":"student123","role":"ETUDIANT"
-  }'
+  -d "{
+    \"firstName\":\"Student\",\"lastName\":\"User\",\"studentId\":\"STU001\",
+    \"email\":\"$STUDENT_EMAIL\",\"age\":22,\"password\":\"$STUDENT_PASSWORD\",\"role\":\"ETUDIANT\"
+  }"
 ```
 
 Login:
@@ -170,11 +176,11 @@ Login:
 ```bash
 ADMIN_TOKEN=$(curl -s -X POST http://localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@example.tn","password":"admin123"}' | jq -r '.access_token')
+  -d "{\"email\":\"$ADMIN_EMAIL\",\"password\":\"$ADMIN_PASSWORD\"}" | jq -r '.access_token')
 
 STUDENT_TOKEN=$(curl -s -X POST http://localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"student@example.tn","password":"student123"}' | jq -r '.access_token')
+  -d "{\"email\":\"$STUDENT_EMAIL\",\"password\":\"$STUDENT_PASSWORD\"}" | jq -r '.access_token')
 ```
 
 Accès protégé (whoami):
@@ -189,7 +195,7 @@ Vérification des règles:
 ```bash
 curl -s -o /dev/null -w "%{http_code}\n" -X POST \
   -H "Authorization: Bearer $STUDENT_TOKEN" -H "Content-Type: application/json" \
-  -d '{"firstName":"X","lastName":"Y","studentId":"STU999","email":"x@y.tn","age":20,"password":"xxxxxx","role":"ETUDIANT"}' \
+  -d "{\"firstName\":\"X\",\"lastName\":\"Y\",\"studentId\":\"STU999\",\"email\":\"x@y.tn\",\"age\":20,\"password\":\"$STUDENT_PASSWORD\",\"role\":\"ETUDIANT\"}" \
   http://localhost:3000/api/utilisateurs
 ```
 
@@ -198,18 +204,19 @@ curl -s -o /dev/null -w "%{http_code}\n" -X POST \
 ```bash
 curl -s -o /dev/null -w "%{http_code}\n" -X POST \
   -H "Authorization: Bearer $ADMIN_TOKEN" -H "Content-Type: application/json" \
-  -d '{"firstName":"New","lastName":"User","studentId":"STU002","email":"new@example.tn","age":21,"password":"password","role":"ETUDIANT"}' \
+  -d "{\"firstName\":\"New\",\"lastName\":\"User\",\"studentId\":\"STU002\",\"email\":\"new@example.tn\",\"age\":21,\"password\":\"$ADMIN_PASSWORD\",\"role\":\"ETUDIANT\"}" \
   http://localhost:3000/api/utilisateurs
 ```
 
 ## Bonnes pratiques et sécurité
 
-- Toujours définir JWT_SECRET dans .env (ne pas commiter ce fichier)
-- Utiliser JwtModule.registerAsync avec ConfigService
-- Mettre en place HTTPS en production
-- Définir des durées d’expiration adaptées (JWT_EXPIRES_IN)
-- Logger les accès et erreurs (LoggerMiddleware, HttpExceptionFilter)
-- Valider toutes les entrées avec class-validator
+- Ne commitez jamais des identifiants (emails/mots de passe) ni des secrets.
+- Utilisez des variables d’environnement dans les exemples et scripts.
+- En cas d’exposition:
+  - Changez immédiatement les mots de passe concernés.
+  - Révoquez les tokens/jwt actifs et changez `JWT_SECRET`.
+  - Purgez l’historique Git si nécessaire (ex: git filter-repo).
+- `.env` est déjà ignoré par `.gitignore`.
 
 ## Dépannage (401 Unauthorized)
 
