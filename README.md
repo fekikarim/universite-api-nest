@@ -225,11 +225,11 @@ curl -s -o /dev/null -w "%{http_code}\n" -X POST \
 Les livrables des prosits sont regroupés ici et numérotés:
 
 1. Prosit 2 — Bases NestJS (Controllers, Services, Modules, DTO)
-   - Dossier: [Cliquer ici](./prosites/prosit2/)
+   - Dossier: [Cliquer ici](./prosites/Prosit%202.pdf)
 2. Prosit 3 — Intégration MongoDB, Mongoose, ConfigModule et variables d’environnement
-   - Dossier: [Cliquer ici](./prosites/prosit3/)
+   - Dossier: [Cliquer ici](./prosites/Prosit3.pdf)
 3. Prosit 4 — Authentification JWT, Autorisation par rôles (RBAC), Guards, intégration complète Mongoose
-   - Dossier: [Cliquer ici](./prosites/prosit4/)
+   - Dossier: [Cliquer ici](./prosites/Prosit4.docx)
 
 ## Scripts utiles
 
