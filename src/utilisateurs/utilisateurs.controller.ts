@@ -12,6 +12,9 @@ import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { Role } from './schemas/utilisateur/utilisateur';
 
+// Swagger decorators
+import { ApiResponse, ApiOperation } from '@nestjs/swagger';
+
 @Controller('utilisateurs')
 export class UtilisateursController {
   constructor(private readonly utilisateursService: UtilisateursService) {}
@@ -27,6 +30,10 @@ export class UtilisateursController {
   // ✅ Accessible à tous les utilisateurs authentifiés (ADMIN + ETUDIANT)
   @Get()
   @UseGuards(JwtAuthGuard)
+  // swagger docs
+  @ApiOperation({ summary: 'Get all utilisateurs' })
+  @ApiResponse({ status: 200, description: 'List of utilisateurs' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   findAll() {
     return this.utilisateursService.findAll();
   }

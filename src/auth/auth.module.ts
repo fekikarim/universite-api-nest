@@ -7,12 +7,18 @@ import { AuthController } from './auth.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Utilisateur as UtilisateurSchemaClass, UtilisateurSchema } from '../utilisateurs/schemas/utilisateur/utilisateur';
 import { JwtStrategy } from './jwt.strategy';
+import { JwtRefreshStrategy } from './jwt-refresh.strategy';
+import { Session } from 'inspector/promises';
+import { SessionSchema } from './schemas/session/session';
 
 @Module({
   imports: [
     ConfigModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
-    MongooseModule.forFeature([{ name: UtilisateurSchemaClass.name, schema: UtilisateurSchema }]),
+    MongooseModule.forFeature([
+      { name: UtilisateurSchemaClass.name, schema: UtilisateurSchema },
+      { name: Session.name, schema: SessionSchema },
+    ]),
 
     // ✅ registerAsync() garantit que ConfigService charge les variables 
     // d'environnement AVANT la configuration du JWT
@@ -22,13 +28,13 @@ import { JwtStrategy } from './jwt.strategy';
         // ✅ Utilise ConfigService pour lire depuis .env (pas process.env directement)
         secret: config.get('JWT_SECRET', 'changeme_dev_secret'),
         signOptions: { 
-          expiresIn: config.get('JWT_EXPIRES_IN', '1h')
+          expiresIn: config.get('JWT_EXPIRES_IN', '30s')
         },
       }),
       inject: [ConfigService], // ✅ Injecte ConfigService dans useFactory
     }),
   ],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, JwtStrategy, JwtRefreshStrategy],
   controllers: [AuthController],
   exports: [AuthService, PassportModule, JwtModule],
 })

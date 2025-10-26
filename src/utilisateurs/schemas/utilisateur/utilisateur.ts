@@ -39,6 +39,10 @@ export class Utilisateur {
     @Prop({ type: String, enum: Role, default: Role.ETUDIANT })
     role: Role;
 
+    // chap 5 attribute (refresh tokens versioning)
+    @Prop({ default: 0 })
+    tokenVersion: number; // Pour invalider tous les refresh tokens d'un coup
+
 }
 
 export const UtilisateurSchema = SchemaFactory.createForClass(Utilisateur);

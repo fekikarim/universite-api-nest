@@ -6,8 +6,13 @@ import { ValidationPipe } from '@nestjs/common';
 import { join } from 'path';
 import { HttpExceptionFilter } from './common/filters/http-exception/http-exception.filter';
 
+// Swagger for API documentation
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  app.setGlobalPrefix('api');
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -19,9 +24,36 @@ async function bootstrap() {
 
   app.useGlobalFilters(new HttpExceptionFilter());
 
+  // Swagger configuration
+  const config = new DocumentBuilder()
+    .setTitle('Université API')
+    .setDescription('API de gestion universitaire avec authentification JWT et refresh tokens')
+    .setVersion('1.0')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'Authorization',
+        description: 'Enter JWT token',
+        in: 'header',
+      },
+      'access-token', // Nom de reference
+    )
+    .addTag('Auth', 'Authentification et gestion des sessions')
+    .addTag('Utilisateurs', 'Gestion des utilisateurs (CRUD)')
+    .addTag('Options', 'Gestion des options académiques')
+    .build();
+
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api/docs', app, document);
+
   app.use('/uploads', express.static(join(__dirname, '..', 'uploads')));
 
-  app.setGlobalPrefix('api');
   await app.listen(process.env.PORT ?? 3000);
+
+  // Log the URLs
+  console.log(`Application is running on: http://localhost:${process.env.PORT ?? 3000}/api`);
+  console.log(`Swagger docs available at: http://localhost:${process.env.PORT ?? 3000}/api/docs`);
 }
 bootstrap();
