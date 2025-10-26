@@ -701,10 +701,6 @@ Computer & Mobile Systems Engineering Student
 - 💼 LinkedIn: [linkedin.com/in/karimfeki](https://www.linkedin.com/in/karimfeki/)
 - 🐙 GitHub: [github.com/fekikarim](https://github.com/fekikarim)
 
-### License
-
-This project is **UNLICENSED** and for academic use only.
-
 ---
 
 ## 🙏 Acknowledgments
