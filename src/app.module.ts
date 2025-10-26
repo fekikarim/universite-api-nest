@@ -16,10 +16,11 @@ import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
+    // Config global
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-
+    // Mongoose
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
@@ -29,10 +30,9 @@ import { APP_GUARD } from '@nestjs/core';
       }),
       inject: [ConfigService],
     }),
-
     // ajouter throttler (limite globale)
     ThrottlerModule.forRoot([{
-      ttl: 6000, // 60 secondes (fenetre de temps)
+      ttl: 60_000, // 60 secondes (fenetre de temps)
       limit: 10, // 10 requetes max par IP dans cette fenetre
     }]),
 
@@ -42,7 +42,8 @@ import { APP_GUARD } from '@nestjs/core';
     AuthModule,
   ],
   controllers: [AppController],
-  providers: [{
+  providers: [
+    AppService,{
     provide: APP_GUARD,
     useClass: ThrottlerGuard,
   }],

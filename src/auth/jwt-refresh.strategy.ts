@@ -20,9 +20,7 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
 
       // Nouvelle version: extraire le token depuis le cookie "refresh_token"
       jwtFromRequest: ExtractJwt.fromExtractors([
-        (request: Request) => {
-            return request?.cookies?.refresh_token; // lire depuis le cookie
-        }
+        (request: Request) => request?.cookies?.refresh_token || null, // lire depuis le cookie
       ]),
       ignoreExpiration: false,
       secretOrKey: configService.get<string>('REFRESH_TOKEN_SECRET', 'changeme_refresh_secret'),

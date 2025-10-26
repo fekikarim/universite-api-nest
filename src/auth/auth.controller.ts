@@ -48,10 +48,11 @@ export class AuthController {
     const result = await this.authService.login(loginDto, ip, userAgent);
 
     // Set refresh token in HttpOnly cookie
-    res.cookie('refreshToken', result.refreshToken, {
+    const crossSite = !!process.env.CORS_ORIGIN; // si défini → front cross-site
+    res.cookie('refresh_token', result.refreshToken, {
       httpOnly: true, // JavaScript cannot access
-      secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-      sameSite: 'strict', // Protection CSRF
+      secure: crossSite || process.env.NODE_ENV === 'production', // HTTPS only in production
+      sameSite: crossSite ? 'none' : 'strict', // Protection CSRF
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 jours
       path: '/api/auth', // Cookie accessible uniquement sur les routes d'auth (/api/auth/*)
     });
@@ -72,6 +73,7 @@ export class AuthController {
   // throttler
   @Throttle({ default: { limit: 10, ttl: 60000 } }) // Max 10 refresh par minute
   // swagger docs
+  @ApiCookieAuth('refresh_token')
   @ApiOperation({ summary: 'Refresh access and refresh tokens' })
   @ApiResponse({ status: 200, description: 'Tokens refreshed successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
@@ -85,15 +87,18 @@ export class AuthController {
     const result = await this.authService.refresh((req as any).user, ip, userAgent);
 
     // Mettre à jour le cookie refresh_token
+    const crossSite = !!process.env.CORS_ORIGIN; 
     res.cookie('refresh_token', result.refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: crossSite || process.env.NODE_ENV === 'production',
+      sameSite: crossSite ? 'none' : 'strict',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 jours
       path: '/api/auth',
     });
 
-    return result;
+    return {
+      accessToken: result.accessToken,
+    };
   }
 
   // Logout (revoke current session)
@@ -102,6 +107,7 @@ export class AuthController {
   // cookie http code
   @HttpCode(HttpStatus.OK)
   // swagger docs
+  @ApiCookieAuth('refresh_token')
   @ApiOperation({ summary: 'Logout from current session' })
   @ApiResponse({ status: 200, description: 'Logged out successfully' })
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
@@ -109,10 +115,11 @@ export class AuthController {
     const result = await this.authService.logout(jti);
 
     // Clear the refresh token cookie
+    const crossSite = !!process.env.CORS_ORIGIN; 
     res.clearCookie('refresh_token', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: crossSite || process.env.NODE_ENV === 'production',
+      sameSite: crossSite ? 'none' : 'strict',
       path: '/api/auth',
     });
 
@@ -125,6 +132,7 @@ export class AuthController {
   // cookie http code
   @HttpCode(HttpStatus.OK)
   // swagger docs
+  @ApiCookieAuth('refresh_token')
   @ApiOperation({ summary: 'Logout from all sessions' })
   @ApiResponse({ status: 200, description: 'All sessions logged out successfully' })
   async logoutAll(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
@@ -132,10 +140,11 @@ export class AuthController {
     const result = await this.authService.logoutAllSessions(userId);
 
     // Clear the refresh token cookie
+    const crossSite = !!process.env.CORS_ORIGIN; 
     res.clearCookie('refresh_token', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: crossSite || process.env.NODE_ENV === 'production',
+      sameSite: crossSite ? 'none' : 'strict',
       path: '/api/auth',
     });
 

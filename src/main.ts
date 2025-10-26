@@ -12,13 +12,26 @@ import cookieParser from 'cookie-parser';
 // Swagger for API documentation
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
+// Helmet for security headers
+import helmet from 'helmet';
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.setGlobalPrefix('api');
 
+  // Security headers
+  app.use(helmet());
+
   // Ajouter cookie-parser
   app.use(cookieParser());
+
+  // CORS (si front sur un domaine différent)
+  const ORIGIN = process.env.CORS_ORIGIN?.split(',').map(s => s.trim());
+  app.enableCors({
+    origin: ORIGIN || true, // en prod: mettre la liste des origines autorisées
+    credentials: true,      // Autoriser l'envoi des cookies
+  });
 
   app.useGlobalPipes(
     new ValidationPipe({
