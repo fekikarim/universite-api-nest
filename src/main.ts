@@ -6,6 +6,9 @@ import { ValidationPipe } from '@nestjs/common';
 import { join } from 'path';
 import { HttpExceptionFilter } from './common/filters/http-exception/http-exception.filter';
 
+// Importer cookie-parser
+import cookieParser from 'cookie-parser';
+
 // Swagger for API documentation
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
@@ -13,6 +16,9 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.setGlobalPrefix('api');
+
+  // Ajouter cookie-parser
+  app.use(cookieParser());
 
   app.useGlobalPipes(
     new ValidationPipe({

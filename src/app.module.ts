@@ -10,6 +10,10 @@ import { LoggerMiddleware } from './logger/logger.middleware';
 import { AuthModule } from './auth/auth.module';
 import { AdminModule } from './utilisateurs/admin.module';
 
+// throttler 
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -26,13 +30,22 @@ import { AdminModule } from './utilisateurs/admin.module';
       inject: [ConfigService],
     }),
 
+    // ajouter throttler (limite globale)
+    ThrottlerModule.forRoot([{
+      ttl: 6000, // 60 secondes (fenetre de temps)
+      limit: 10, // 10 requetes max par IP dans cette fenetre
+    }]),
+
     UtilisateursModule,
     AdminModule,
     OptionsModule,
     AuthModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [{
+    provide: APP_GUARD,
+    useClass: ThrottlerGuard,
+  }],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

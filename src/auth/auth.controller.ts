@@ -1,12 +1,13 @@
-import { Controller, Post, Body, Req, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Req, UseGuards, Res, HttpStatus, HttpCode } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { LoginDto } from './dto/login.dto';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 import { JwtRefreshGuard } from './jwt-refresh.guard';
 
 // Swagger decorators
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiCookieAuth } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -33,54 +34,111 @@ export class AuthController {
   // ###############################################
   // Login with refresh token and session management
   @Post('login')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 60000} }) // Max 5 logins par minute
   // swagger docs
   @ApiOperation({ summary: 'User login and session creation' })
   @ApiResponse({ status: 200, description: 'User logged in successfully with access and refresh tokens' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 429, description: 'Too Many Requests' })
-  async login(@Body() loginDto: LoginDto, @Req() req: Request) {
+  async login(@Body() loginDto: LoginDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const ip = req.ip || req.socket.remoteAddress;
     const userAgent = req.headers['user-agent'];
-    return this.authService.login(loginDto, ip, userAgent);
+
+    const result = await this.authService.login(loginDto, ip, userAgent);
+
+    // Set refresh token in HttpOnly cookie
+    res.cookie('refreshToken', result.refreshToken, {
+      httpOnly: true, // JavaScript cannot access
+      secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+      sameSite: 'strict', // Protection CSRF
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 jours
+      path: '/api/auth', // Cookie accessible uniquement sur les routes d'auth (/api/auth/*)
+    });
+
+    // return ONLY the access token + user (no refresh token in body)
+    return {
+      accessToken: result.accessToken,
+      user: result.user,
+    };
   }
   // ###############################################
 
   // Endpoint refresh (rotation)
   @UseGuards(JwtRefreshGuard)
   @Post('refresh')
+  // cookie http code
+  @HttpCode(HttpStatus.OK)
+  // throttler
+  @Throttle({ default: { limit: 10, ttl: 60000 } }) // Max 10 refresh par minute
   // swagger docs
   @ApiOperation({ summary: 'Refresh access and refresh tokens' })
   @ApiResponse({ status: 200, description: 'Tokens refreshed successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async refresh(@Req() req: Request) {
+  async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
 
     // req.user est fourni par JwtRefreshStrategy (userId, email, role, jti, sessionId)
     const ip = req.ip || req.socket.remoteAddress;
     const userAgent = req.headers['user-agent'];
 
     // authService.refresh() renvoie { accessToken, refreshToken }
-    return this.authService.refresh((req as any).user, ip, userAgent);
+    const result = await this.authService.refresh((req as any).user, ip, userAgent);
+
+    // Mettre à jour le cookie refresh_token
+    res.cookie('refresh_token', result.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 jours
+      path: '/api/auth',
+    });
+
+    return result;
   }
 
   // Logout (revoke current session)
   @UseGuards(JwtRefreshGuard)
   @Post('logout')
+  // cookie http code
+  @HttpCode(HttpStatus.OK)
   // swagger docs
   @ApiOperation({ summary: 'Logout from current session' })
   @ApiResponse({ status: 200, description: 'Logged out successfully' })
-  async logout(@Req() req: Request) {
+  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const { jti } = (req as any).user;
-    return this.authService.logout(jti);
+    const result = await this.authService.logout(jti);
+
+    // Clear the refresh token cookie
+    res.clearCookie('refresh_token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/api/auth',
+    });
+
+    return result;
   }
 
   // Logout from all sessions (revoke all sessions for a user)
   @UseGuards(JwtRefreshGuard)
   @Post('logout-all')
+  // cookie http code
+  @HttpCode(HttpStatus.OK)
   // swagger docs
   @ApiOperation({ summary: 'Logout from all sessions' })
   @ApiResponse({ status: 200, description: 'All sessions logged out successfully' })
-  async logoutAll(@Req() req: Request) {
+  async logoutAll(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const { userId } = (req as any).user;
-    return this.authService.logoutAllSessions(userId);
+    const result = await this.authService.logoutAllSessions(userId);
+
+    // Clear the refresh token cookie
+    res.clearCookie('refresh_token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/api/auth',
+    });
+
+    return result;
   }
 }

@@ -4,7 +4,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Request } from 'express';
+import { request, Request } from 'express';
 import { Session, SessionDocument } from './schemas/session/session';
 import * as bcrypt from 'bcrypt';
 
@@ -15,15 +15,24 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
     @InjectModel(Session.name) private sessionModel: Model<SessionDocument>,
   ) {
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      secretOrKey: configService.get<string>('REFRESH_TOKEN_SECRET'),
-      passReqToCallback: true, // ✅ Pour accéder au token brut dans validate()
+      // old version
+      // jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+
+      // Nouvelle version: extraire le token depuis le cookie "refresh_token"
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        (request: Request) => {
+            return request?.cookies?.refresh_token; // lire depuis le cookie
+        }
+      ]),
+      ignoreExpiration: false,
+      secretOrKey: configService.get<string>('REFRESH_TOKEN_SECRET', 'changeme_refresh_secret'),
+      passReqToCallback: true, // Pour accéder au token brut dans validate()
     });
   }
 
   async validate(req: Request, payload: any) {
-    // Extraire le refresh token brut depuis le header Authorization
-    const refreshToken = req.headers.authorization?.split(' ')[1];
+    // Extraire le refresh token brut depuis le cookie
+    const refreshToken = req.cookies?.refresh_token;
     if (!refreshToken) {
       throw new UnauthorizedException('Refresh token not found');
     }
@@ -60,8 +69,8 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
         // ### Token deja utilise pour refresh -> suspicion de vol
         // On revoque TOUTES les sessions associees a cet utilisateur
         await this.sessionModel.updateMany(
-            { userId: session.userId },
-            { revokedAt: new Date() }
+            { userId: session.userId, revokedAt: null },
+            { $set: { revokedAt: new Date() } }
         ).exec();
 
         throw new UnauthorizedException('Refresh token reuse detected. All sessions revoked.');
