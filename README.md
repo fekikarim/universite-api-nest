@@ -163,10 +163,6 @@ Projet réalisé dans le cadre du cursus de **4ème année SIM** à [ESPRIT](htt
 - 💼 LinkedIn : [linkedin.com/in/karimfeki](https://www.linkedin.com/in/karimfeki/)
 - 🐙 GitHub : [github.com/fekikarim](https://github.com/fekikarim)
 
-### Licence
-
-Ce projet est sous licence **UNLICENSED** et à usage académique uniquement.
-
 ---
 
 ## 🙏 Remerciements
