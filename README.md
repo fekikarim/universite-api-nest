@@ -1,266 +1,306 @@
-# Université API — NestJS, MongoDB, JWT Auth & RBAC
+# Université API — NestJS, MongoDB, JWT Auth, Refresh Tokens & RBAC
 
-API REST sécurisée pour la gestion d’une université, développée avec NestJS et MongoDB. Ce projet intègre l’authentification JWT, l’autorisation basée sur les rôles (RBAC), des Guards pour la protection des endpoints, et une intégration complète avec Mongoose.
+[Français](#français) | [English](#english)
 
 Base URL: http://localhost:3000/api
 
-## Fonctionnalités
+---
 
-- Authentification stateless avec JWT (login/register)
-- Autorisation basée sur les rôles (ADMIN, ETUDIANT)
-- Protection des routes via JwtAuthGuard et RolesGuard
-- Intégration MongoDB via Mongoose (schemas, modules)
-- Organisation modulaire (Auth, Utilisateurs, Options, Admin)
-- Chargement des variables d’environnement (ConfigModule)
-- Middleware de logs (LoggerMiddleware)
-- Gestion propre des erreurs HTTP (HttpExceptionFilter)
+## Français
 
-## Stack technique
+### Vue d’ensemble
 
-- Runtime: Node.js (>= 18 recommandé)
-- Framework: NestJS (TypeScript)
-- Base de données: MongoDB
-- Auth: Passport + JWT
-- Validation: class-validator / class-transformer
-- ODM: Mongoose
+API REST sécurisée pour la gestion d’une université, développée avec NestJS et MongoDB. Le projet implémente l’authentification avec tokens d’accès (JWT) à courte durée et tokens de rafraîchissement sécurisés en cookie httpOnly, l’autorisation par rôles (RBAC), un stockage de sessions, la rotation de refresh tokens, la détection de réutilisation (reuse), des Guards et des bonnes pratiques de sécurité (rate limiting, headers, CORS).
 
-## Structure du projet (extraits)
+### Fonctionnalités clés
+
+- Authentification JWT (access token court, refresh token long en cookie httpOnly)
+- Rotation du refresh token et détection de réutilisation (révocation globale en cas de reuse)
+- Sessions persistantes en base (Mongo) avec hash du refresh token (bcrypt)
+- Logout (session courante) et Logout-All (toutes les sessions de l’utilisateur)
+- Autorisation basée sur les rôles (ADMIN, ETUDIANT) via Guards
+- Validation des DTO (class-validator) et gestion des erreurs (HttpExceptionFilter)
+- Rate limiting (Throttler) sur /auth/login et /auth/refresh
+- Swagger/OpenAPI à http://localhost:3000/api/docs
+- Sécurisation headers (Helmet) et cookies (httpOnly, SameSite, Secure en prod)
+
+### Stack technique
+
+- Node.js ≥ 18, NestJS (TypeScript)
+- MongoDB + Mongoose
+- Passport JWT (strategies: jwt, jwt-refresh)
+- class-validator, class-transformer
+- @nestjs/throttler, helmet, cookie-parser
+
+### Architecture (extrait)
 
 - src/
-  - app.module.ts
-  - main.ts
-  - logger/
-    - logger.middleware.ts
+  - auth/ (module, controller, service, strategies, guards, DTOs)
+  - utilisateurs/ (module, controller, service, schema)
+  - options/ (module, controller, service, schema)
   - common/filters/http-exception/
-    - http-exception.filter.ts
-  - auth/
-    - auth.module.ts
-    - auth.controller.ts
-    - auth.service.ts
-    - jwt.strategy.ts
-    - jwt-auth.guard.ts
-    - roles.guard.ts
-    - roles.decorator.ts
-    - dto/
-      - create-auth.dto.ts
-      - login.dto.ts
-  - utilisateurs/
-    - utilisateurs.module.ts
-    - utilisateurs.controller.ts
-    - utilisateurs.service.ts
-    - admin.module.ts
-    - admin.controller.ts
-    - schemas/utilisateur/utilisateur.ts
-  - options/
-    - options.module.ts
-    - options.controller.ts
-    - options.service.ts
-    - schemas/option.schema.ts
-- prosites/ (prosit 2, 3, 4 importés)
-- seed.js
-- .env
+  - main.ts, app.module.ts
 
-## Prérequis
+### Prérequis
 
-- Node.js >= 18
-- MongoDB en local (ou un cluster accessible)
-- npm >= 9
+- Node.js ≥ 18, npm ≥ 9
+- MongoDB local (ou cluster)
 - macOS/Linux/WSL recommandé
 
-## Installation
+### Installation
 
 ```bash
 npm install
 ```
 
-Créer un fichier .env à la racine:
+### Configuration (.env)
+
+Créez un fichier .env à la racine (ne commitez jamais de secrets):
 
 ```env
-# Connexion Mongo et config serveur
-MONGO_URI=mongodb://localhost:27017/universite
+# Serveur
 PORT=3000
 
-# JWT
-JWT_SECRET=changeme_dev_secret    # Remplacez par un secret fort en prod (>= 32 chars)
-JWT_EXPIRES_IN=1h
+# MongoDB
+MONGO_URI=mongodb://localhost:27017/universite
+
+# JWT accès (court)
+JWT_SECRET=<CHANGE_ME_STRONG_SECRET>
+JWT_EXPIRES_IN=15m
+
+# Refresh token (long)
+REFRESH_TOKEN_SECRET=<CHANGE_ME_STRONG_REFRESH_SECRET>
+REFRESH_TOKEN_TTL=7d
+
+# CORS (optionnel, si front sur autre domaine)
+# CORS_ORIGIN=https://app.example.com
+
+# NODE_ENV=production
 ```
 
-Démarrage:
+Conseils sécurité:
+- Utilisez des secrets forts (≥ 32 chars), différents pour access/refresh.
+- Ne commitez aucune valeur sensible. Préférez un .env.local non versionné.
+
+### Démarrage
 
 ```bash
-# développement (watch)
+# développement
 npm run start:dev
 
 # production
 npm run start:prod
 ```
 
-MongoDB doit être démarré avant (par exemple via brew services start mongodb-community sur macOS).
+### Conception AuthN/AuthZ
 
-## Données d’exemple (seed)
+- Access token (JWT) court (ex: 15 min) — transmis en Authorization: Bearer.
+- Refresh token long (ex: 7 jours) — stocké en cookie httpOnly, SameSite strict (ou None + Secure en cross-site).
+- À chaque /auth/refresh: rotation du refresh token (nouveau jti, nouvelle session), l’ancien est marqué remplacé.
+- Réutilisation d’un refresh ancien (reuse) → détection et révocation de toutes les sessions de l’utilisateur.
+- Sessions: { userId (string), jti, refreshTokenHash (bcrypt), expiresAt, revokedAt, replacedBy, ip, userAgent } avec index TTL sur expiresAt.
+- Endpoints: /auth/login, /auth/refresh, /auth/logout, /auth/logout-all, /auth/register.
 
-Un script de seed est fourni.
-
-```bash
-node seed.js
-```
-
-Sinon, vous pouvez créer les comptes via l’endpoint /auth/register (voir ci-dessous).
-
-## Authentification et Rôles
-
-- Rôles supportés: ADMIN, ETUDIANT
-- Les JWT incluent: sub, email, role, iat, exp
-- Le même secret JWT est utilisé pour signer et vérifier (via JwtModule.registerAsync + ConfigService)
-
-Important: l’utilisation de JwtModule.registerAsync garantit que les variables d’environnement sont chargées avant la configuration JWT, évitant les erreurs 401 dues à des secrets différents au moment de la signature/vérification.
-
-## Endpoints principaux
+### Endpoints principaux
 
 - Auth
   - POST /api/auth/register
   - POST /api/auth/login
+  - POST /api/auth/refresh
+  - POST /api/auth/logout
+  - POST /api/auth/logout-all
 - Utilisateurs
   - GET /api/utilisateurs
   - GET /api/utilisateurs/:id
-  - POST /api/utilisateurs            (ADMIN)
-  - PATCH /api/utilisateurs/:id       (ADMIN)
-  - DELETE /api/utilisateurs/:id      (ADMIN)
-- Options
-  - GET /api/options
-  - GET /api/options/:id
-  - POST /api/options                 (ADMIN)
-  - PATCH /api/options/:id            (ADMIN)
-  - DELETE /api/options/:id           (ADMIN)
-- Admin (exemples protégés)
-  - GET /api/admin/whoami             (JWT)
-  - GET /api/admin/profile            (ADMIN, ETUDIANT)
-  - GET /api/admin/dashboard          (ADMIN)
+  - POST /api/utilisateurs (ADMIN)
+  - PATCH /api/utilisateurs/:id (ADMIN)
+  - DELETE /api/utilisateurs/:id (ADMIN)
+- Options (similaire)
+- Admin (exemples)
 
-Règles d’accès:
-- ADMIN: accès total (GET/POST/PATCH/DELETE)
-- ETUDIANT: lecture seule (GET)
-
-## Exemples de requêtes (cURL)
-
-// Utilisez des variables d'environnement pour éviter de laisser des identifiants dans l'historique shell
-export ADMIN_EMAIL="admin@example.tn"
-export ADMIN_PASSWORD="<ADMIN_PASSWORD>"        # remplacez par votre mot de passe admin réel (ne pas commiter)
-export STUDENT_EMAIL="student@example.tn"
-export STUDENT_PASSWORD="<STUDENT_PASSWORD>"    # remplacez par votre mot de passe étudiant réel (ne pas commiter)
-
-Créer un ADMIN:
+### Tests rapides (cURL + jq)
 
 ```bash
-curl -X POST http://localhost:3000/api/auth/register \
+brew install jq # si nécessaire
+
+# 1) Login (écrit un cookie httpOnly refresh_token)
+curl -sv -X POST http://localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d "{
-    \"firstName\":\"Admin\",\"lastName\":\"User\",\"studentId\":\"ADMIN001\",
-    \"email\":\"$ADMIN_EMAIL\",\"age\":30,\"password\":\"$ADMIN_PASSWORD\",\"role\":\"ADMIN\"
-  }"
+  -d '{"email":"student@example.tn","password":"<PASSWORD>"}' \
+  -c cookies.txt | jq .
+
+# 2) Appeler route protégée avec l'access token (remplacez $ACCESS)
+ACCESS=$(curl -s -X POST http://localhost:3000/api/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"student@example.tn","password":"<PASSWORD>"}' -c cookies.txt | jq -r '.accessToken')
+curl -s -X GET http://localhost:3000/api/utilisateurs \
+  -H "Authorization: Bearer $ACCESS" | jq .
+
+# 3) Refresh (lit le cookie et le rotate, renvoie un nouveau access token)
+curl -s -X POST http://localhost:3000/api/auth/refresh -b cookies.txt -c cookies.txt | jq .
+
+# 4) Logout (révoque la session courante et efface le cookie)
+curl -s -X POST http://localhost:3000/api/auth/logout -b cookies.txt | jq .
+
+# 5) Logout-All (révoque toutes les sessions)
+curl -s -X POST http://localhost:3000/api/auth/logout-all -b cookies.txt | jq .
 ```
 
-Créer un ETUDIANT:
+### Swagger / OpenAPI
+
+- Documentation interactive: http://localhost:3000/api/docs
+- Authentification: Bearer pour access token; Cookie (refresh_token) pour refresh/logout.
+
+### CORS & Cookies
+
+- Même origine (local): SameSite=strict, secure=false acceptable en dev.
+- Cross-site (prod): SameSite=None; Secure=true et activer CORS avec credentials.
+
+### Rate limiting (Throttler)
+
+- Limites configurées sur /auth/login et /auth/refresh (429 en cas d’abus).
+- Les en-têtes X-RateLimit-* sont exposés.
+
+### Dépannage
+
+- 401 après modification du .env → redémarrez le serveur.
+- 401 sur refresh → vérifier présence du cookie, jti, révocation/expiration de session.
+- 429 sur login → attendre la fenêtre (ttl) avant de retester.
+
+---
+
+## English
+
+### Overview
+
+Secure REST API for a university system built with NestJS and MongoDB. It implements short-lived access tokens (JWT) and long-lived refresh tokens stored in httpOnly cookies, role-based access control (RBAC), persistent session storage, refresh token rotation with reuse detection, guards, throttling, and best-practice security headers.
+
+### Key features
+
+- JWT authentication (short access token, long refresh token in httpOnly cookie)
+- Refresh token rotation and reuse detection (global revocation on reuse)
+- Persistent sessions in Mongo (refresh token stored as bcrypt hash)
+- Logout (current session) and Logout-All (all user sessions)
+- Role-based authorization (ADMIN, ETUDIANT) via guards
+- DTO validation and consistent HTTP error handling
+- Throttling on /auth/login and /auth/refresh
+- Swagger/OpenAPI at http://localhost:3000/api/docs
+- Security headers (Helmet) and secure cookie settings
+
+### Tech stack
+
+- Node.js ≥ 18, NestJS (TypeScript)
+- MongoDB + Mongoose
+- Passport JWT (strategies: jwt, jwt-refresh)
+- class-validator, class-transformer
+- @nestjs/throttler, helmet, cookie-parser
+
+### Prerequisites
+
+- Node.js ≥ 18, npm ≥ 9
+- MongoDB running locally or remotely
+
+### Setup
 
 ```bash
-curl -X POST http://localhost:3000/api/auth/register \
+npm install
+```
+
+### Configuration (.env)
+
+```env
+PORT=3000
+MONGO_URI=mongodb://localhost:27017/universite
+
+JWT_SECRET=<CHANGE_ME_STRONG_SECRET>
+JWT_EXPIRES_IN=15m
+
+REFRESH_TOKEN_SECRET=<CHANGE_ME_STRONG_REFRESH_SECRET>
+REFRESH_TOKEN_TTL=7d
+
+# CORS_ORIGIN=https://app.example.com
+# NODE_ENV=production
+```
+
+Never commit secrets. Use strong, distinct secrets for access and refresh tokens.
+
+### Run
+
+```bash
+npm run start:dev   # development
+npm run start:prod  # production
+```
+
+### Auth design
+
+- Access token (short) sent via Authorization header.
+- Refresh token (long) stored in httpOnly cookie; rotation on every refresh.
+- Reuse detection revokes all sessions for the user.
+- Sessions schema: userId (string), jti, refreshTokenHash, expiresAt, revokedAt, replacedBy, ip, userAgent (TTL index on expiresAt).
+- Endpoints: /auth/register, /auth/login, /auth/refresh, /auth/logout, /auth/logout-all.
+
+### Quick test (cURL + jq)
+
+```bash
+# Login (writes httpOnly cookie)
+curl -sv -X POST http://localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d "{
-    \"firstName\":\"Student\",\"lastName\":\"User\",\"studentId\":\"STU001\",
-    \"email\":\"$STUDENT_EMAIL\",\"age\":22,\"password\":\"$STUDENT_PASSWORD\",\"role\":\"ETUDIANT\"
-  }"
+  -d '{"email":"student@example.tn","password":"<PASSWORD>"}' \
+  -c cookies.txt | jq .
+
+# Refresh (reads/rotates cookie and returns a new access token)
+curl -s -X POST http://localhost:3000/api/auth/refresh -b cookies.txt -c cookies.txt | jq .
+
+# Logout (revokes current session and clears cookie)
+curl -s -X POST http://localhost:3000/api/auth/logout -b cookies.txt | jq .
 ```
 
-Login:
+### Swagger / OpenAPI
+
+Open http://localhost:3000/api/docs and use Bearer auth (access token) and Cookie auth (refresh_token) where applicable.
+
+### CORS & Cookies
+
+- Same-origin dev: SameSite=strict, secure=false.
+- Cross-site prod: SameSite=None; Secure=true and CORS with credentials enabled.
+
+### Troubleshooting
+
+- 401 after env changes → restart the server.
+- 401 on refresh → ensure cookie is present, session not revoked/expired.
+- 429 on login → hitting throttling limits; wait for the window to reset.
+
+---
+
+## Scripts utiles / Useful scripts
 
 ```bash
-ADMIN_TOKEN=$(curl -s -X POST http://localhost:3000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d "{\"email\":\"$ADMIN_EMAIL\",\"password\":\"$ADMIN_PASSWORD\"}" | jq -r '.access_token')
-
-STUDENT_TOKEN=$(curl -s -X POST http://localhost:3000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d "{\"email\":\"$STUDENT_EMAIL\",\"password\":\"$STUDENT_PASSWORD\"}" | jq -r '.access_token')
-```
-
-Accès protégé (whoami):
-
-```bash
-curl -H "Authorization: Bearer $ADMIN_TOKEN" http://localhost:3000/api/admin/whoami
-```
-
-Vérification des règles:
-- Étudiant ne peut pas créer (403 attendu)
-
-```bash
-curl -s -o /dev/null -w "%{http_code}\n" -X POST \
-  -H "Authorization: Bearer $STUDENT_TOKEN" -H "Content-Type: application/json" \
-  -d "{\"firstName\":\"X\",\"lastName\":\"Y\",\"studentId\":\"STU999\",\"email\":\"x@y.tn\",\"age\":20,\"password\":\"$STUDENT_PASSWORD\",\"role\":\"ETUDIANT\"}" \
-  http://localhost:3000/api/utilisateurs
-```
-
-- Admin peut créer (201 attendu)
-
-```bash
-curl -s -o /dev/null -w "%{http_code}\n" -X POST \
-  -H "Authorization: Bearer $ADMIN_TOKEN" -H "Content-Type: application/json" \
-  -d "{\"firstName\":\"New\",\"lastName\":\"User\",\"studentId\":\"STU002\",\"email\":\"new@example.tn\",\"age\":21,\"password\":\"$ADMIN_PASSWORD\",\"role\":\"ETUDIANT\"}" \
-  http://localhost:3000/api/utilisateurs
-```
-
-## Bonnes pratiques et sécurité
-
-- Ne commitez jamais des identifiants (emails/mots de passe) ni des secrets.
-- Utilisez des variables d’environnement dans les exemples et scripts.
-- En cas d’exposition:
-  - Changez immédiatement les mots de passe concernés.
-  - Révoquez les tokens/jwt actifs et changez `JWT_SECRET`.
-  - Purgez l’historique Git si nécessaire (ex: git filter-repo).
-- `.env` est déjà ignoré par `.gitignore`.
-
-## Dépannage (401 Unauthorized)
-
-- Vérifier l’en-tête Authorization: Bearer <token>
-- Vérifier JWT_SECRET et JWT_EXPIRES_IN dans .env
-- Redémarrer l’app après modification de .env
-- S’assurer que AuthModule est importé là où les Guards sont utilisés
-- Vérifier que JwtStrategy est bien dans providers d’AuthModule
-- Vérifier l’horloge système (iat/exp)
-
-## Prosits
-
-Les livrables des prosits sont regroupés ici et numérotés:
-
-1. Prosit 2 — Bases NestJS (Controllers, Services, Modules, DTO)
-   - Dossier: [Cliquer ici](./prosites/Prosit%202.pdf)
-2. Prosit 3 — Intégration MongoDB, Mongoose, ConfigModule et variables d’environnement
-   - Dossier: [Cliquer ici](./prosites/Prosit3.pdf)
-3. Prosit 4 — Authentification JWT, Autorisation par rôles (RBAC), Guards, intégration complète Mongoose
-   - Dossier: [Cliquer ici](./prosites/Prosit4.docx)
-
-## Scripts utiles
-
-```bash
-# Lancement (dev)
+# Dev
 npm run start:dev
 
-# Lancement (prod)
+# Prod
 npm run start:prod
 
-# Tests
+# Tests unit/e2e (si configurés)
 npm run test
 npm run test:e2e
 npm run test:cov
 
-# Seed
+# Seed (optionnel)
 node seed.js
 ```
 
-## A propos
+## Sécurité / Security
 
-Projet académique réalisé dans le cadre d’un prosit de l’université [ESPRIT](https://www.esprit.tn/).
+- Ne commitez pas d’identifiants ni de secrets. Never commit credentials or secrets.
+- En cas d’exposition: changez les mots de passe, régénérez les secrets, révoquez les sessions, et purgez l’historique si nécessaire.
+- `.env` doit rester ignoré par Git.
+
+## A propos / About
+
+Projet académique réalisé dans le cadre d’un prosit de l’université ESPRIT.
 
 Auteur: Karim Feki  
-Email: [feki.karim28@gmail.com](mailto:feki.karim28@gmail.com)  
-LinkedIn: [Cliquer ici](https://www.linkedin.com/in/karimfeki/)  
-GitHub: [Cliquer ici](https://github.com/fekikarim)
+Email: feki.karim28@gmail.com  
+LinkedIn: https://www.linkedin.com/in/karimfeki/  
+GitHub: https://github.com/fekikarim
