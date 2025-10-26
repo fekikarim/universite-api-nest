@@ -106,80 +106,43 @@ universite-api/
 ├── package.json
 └── README.md
 ```
-## 📖 Prosits
+
 ---
-Documentation académique des différents prosits :
+
 ## 📋 Prérequis
-1. **Prosit 2** — Bases NestJS (Controllers, Services, Modules, DTO)
-  - [📄 Documentation](./prosites/Prosit%202.pdf)
----
-2. **Prosit 3** — Intégration MongoDB, Mongoose, ConfigModule
-  - [📄 Documentation](./prosites/Prosit3.pdf)
 
-3. **Prosit 4** — Authentification JWT, RBAC, Guards, Mongoose
-  - [📄 Documentation](./prosites/Prosit4.docx)
-
-4. **Prosit 5** — Refresh Tokens, Sessions, Swagger
-  - Fonctionnalités intégrées dans ce projet
+- **Node.js** version 18 ou supérieure
+- **MongoDB** (local ou cluster distant)
+- **npm** version 9 ou supérieure
+- **macOS/Linux/WSL** (recommandé)
 
 ---
 
-## � Scripts Utiles
-## �🚀 Installation
+## 🚀 Installation
 
-# Développement
-npm run start:dev        # Mode watch avec hot-reload
-npm run start:debug      # Mode debug
+1. **Cloner le dépôt**
+
 ```bash
-# Production
-npm run build            # Compiler TypeScript → JavaScript
-npm run start:prod       # Démarrer en mode production
-
-# Code Quality
-npm run format           # Formater le code avec Prettier
-npm run lint             # Vérifier avec ESLint
-npm run lint -- --fix    # Corriger automatiquement
+git clone https://github.com/fekikarim/universite-api-nest.git
+cd universite-api-nest
 ```
 
-npm run test             # Tests unitaires
-npm run test:e2e         # Tests end-to-end
-npm run test:cov         # Rapport de couverture
----
+2. **Installer les dépendances**
+
+```bash
+npm install
+```
 
 ---
 
-## 👨‍💻 À Propos
+## ⚙️ Configuration
 
-### Projet Académique
+Créer un fichier `.env` à la racine du projet :
 
-Projet réalisé dans le cadre du cursus de **4ème année SIM** à [ESPRIT](https://www.esprit.tn/) — École Supérieure Privée d'Ingénierie et de Technologies.
+```env
+# Connexion MongoDB
+MONGO_URI=mongodb://localhost:27017/universite
 
-### Auteur
-
-**Karim Feki**  
-Étudiant Ingénieur en Systèmes d'Information et Multimédia
-
-- 📧 Email : [feki.karim28@gmail.com](mailto:feki.karim28@gmail.com)
-- 💼 LinkedIn : [linkedin.com/in/karimfeki](https://www.linkedin.com/in/karimfeki/)
-- 🐙 GitHub : [github.com/fekikarim](https://github.com/fekikarim)
-
----
-
-## 🙏 Remerciements
-
-- L'équipe NestJS pour le framework exceptionnel
-- La communauté MongoDB pour Mongoose
-- Les enseignants et l'administration d'ESPRIT
-
----
-
-**Version :** 1.0.0  
-**Dernière mise à jour :** Octobre 2025
-
-[![Made with NestJS](https://img.shields.io/badge/Made%20with-NestJS-E0234E?style=for-the-badge&logo=nestjs)](https://nestjs.com/)
-[![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Swagger](https://img.shields.io/badge/Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=black)](https://swagger.io/)
 # Configuration serveur
 PORT=3000
 
@@ -350,50 +313,6 @@ L'API utilise un système d'authentification à deux tokens :
 | GET | `/dashboard` | JwtGuard | ADMIN | Tableau de bord admin |
 
 ---
-
-## Données d’exemple (seed)
-
-Un script de seed est fourni.
-
-```bash
-node seed.js
-```
-
-Sinon, vous pouvez créer les comptes via l’endpoint /auth/register (voir ci-dessous).
-
-## Authentification et Rôles
-
-- Rôles supportés: ADMIN, ETUDIANT
-- Les JWT incluent: sub, email, role, iat, exp
-- Le même secret JWT est utilisé pour signer et vérifier (via JwtModule.registerAsync + ConfigService)
-
-Important: l’utilisation de JwtModule.registerAsync garantit que les variables d’environnement sont chargées avant la configuration JWT, évitant les erreurs 401 dues à des secrets différents au moment de la signature/vérification.
-
-## Endpoints principaux
-
-- Auth
-  - POST /api/auth/register
-  - POST /api/auth/login
-- Utilisateurs
-  - GET /api/utilisateurs
-  - GET /api/utilisateurs/:id
-  - POST /api/utilisateurs            (ADMIN)
-  - PATCH /api/utilisateurs/:id       (ADMIN)
-  - DELETE /api/utilisateurs/:id      (ADMIN)
-- Options
-  - GET /api/options
-  - GET /api/options/:id
-  - POST /api/options                 (ADMIN)
-  - PATCH /api/options/:id            (ADMIN)
-  - DELETE /api/options/:id           (ADMIN)
-- Admin (exemples protégés)
-  - GET /api/admin/whoami             (JWT)
-  - GET /api/admin/profile            (ADMIN, ETUDIANT)
-  - GET /api/admin/dashboard          (ADMIN)
-
-Règles d’accès:
-- ADMIN: accès total (GET/POST/PATCH/DELETE)
-- ETUDIANT: lecture seule (GET)
 
 ## 📝 Exemples de Requêtes
 
@@ -721,40 +640,82 @@ npm run test:watch
 
 ---
 
-## Prosits
 
-Les livrables des prosits sont regroupés ici et numérotés:
+## 📖 Prosits
 
-1. Prosit 2 — Bases NestJS (Controllers, Services, Modules, DTO)
-   - Dossier: [Cliquer ici](./prosites/Prosit%202.pdf)
-2. Prosit 3 — Intégration MongoDB, Mongoose, ConfigModule et variables d’environnement
-   - Dossier: [Cliquer ici](./prosites/Prosit3.pdf)
-3. Prosit 4 — Authentification JWT, Autorisation par rôles (RBAC), Guards, intégration complète Mongoose
-   - Dossier: [Cliquer ici](./prosites/Prosit4.docx)
+Documentation académique des différents prosits :
 
-## Scripts utiles
+1. **Prosit 2** — Bases NestJS (Controllers, Services, Modules, DTO)
+   - [📄 Documentation](./prosites/Prosit%202.pdf)
+
+2. **Prosit 3** — Intégration MongoDB, Mongoose, ConfigModule
+   - [📄 Documentation](./prosites/Prosit3.pdf)
+
+3. **Prosit 4** — Authentification JWT, RBAC, Guards, Mongoose
+   - [📄 Documentation](./prosites/Prosit4.docx)
+
+4. **Prosit 5** — Refresh Tokens, Sessions, Swagger
+   - Fonctionnalités intégrées dans ce projet
+
+---
+
+## 📜 Scripts Utiles
 
 ```bash
-# Lancement (dev)
-npm run start:dev
+# Développement
+npm run start:dev        # Mode watch avec hot-reload
+npm run start:debug      # Mode debug
 
-# Lancement (prod)
-npm run start:prod
+# Production
+npm run build            # Compiler TypeScript → JavaScript
+npm run start:prod       # Démarrer en mode production
+
+# Code Quality
+npm run format           # Formater le code avec Prettier
+npm run lint             # Vérifier avec ESLint
+npm run lint -- --fix    # Corriger automatiquement
 
 # Tests
-npm run test
-npm run test:e2e
-npm run test:cov
-
-# Seed
-node seed.js
+npm run test             # Tests unitaires
+npm run test:e2e         # Tests end-to-end
+npm run test:cov         # Rapport de couverture
 ```
 
-## A propos
+---
 
-Projet académique réalisé dans le cadre d’un prosit de l’université [ESPRIT](https://www.esprit.tn/).
+## 👨‍💻 À Propos
 
-Auteur: Karim Feki  
-Email: [feki.karim28@gmail.com](mailto:feki.karim28@gmail.com)  
-LinkedIn: [Cliquer ici](https://www.linkedin.com/in/karimfeki/)  
-GitHub: [Cliquer ici](https://github.com/fekikarim)
+### Projet Académique
+
+Projet réalisé dans le cadre du cursus de **4ème année SIM** à [ESPRIT](https://www.esprit.tn/) — École Supérieure Privée d'Ingénierie et de Technologies.
+
+### Auteur
+
+**Karim Feki**  
+Étudiant Ingénieur en Systèmes d'Information et Multimédia
+
+- 📧 Email : [feki.karim28@gmail.com](mailto:feki.karim28@gmail.com)
+- 💼 LinkedIn : [linkedin.com/in/karimfeki](https://www.linkedin.com/in/karimfeki/)
+- 🐙 GitHub : [github.com/fekikarim](https://github.com/fekikarim)
+
+### Licence
+
+Ce projet est sous licence **UNLICENSED** et à usage académique uniquement.
+
+---
+
+## 🙏 Remerciements
+
+- L'équipe NestJS pour le framework exceptionnel
+- La communauté MongoDB pour Mongoose
+- Les enseignants et l'administration d'ESPRIT
+
+---
+
+**Version :** 1.0.0  
+**Dernière mise à jour :** Octobre 2025
+
+[![Made with NestJS](https://img.shields.io/badge/Made%20with-NestJS-E0234E?style=for-the-badge&logo=nestjs)](https://nestjs.com/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Swagger](https://img.shields.io/badge/Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=black)](https://swagger.io/)
