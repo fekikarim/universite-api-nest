@@ -9,6 +9,7 @@ import { OptionsModule } from './options/options.module';
 import { LoggerMiddleware } from './logger/logger.middleware';
 import { AuthModule } from './auth/auth.module';
 import { AdminModule } from './utilisateurs/admin.module';
+import { DataModule } from './data/data.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { AdminModule } from './utilisateurs/admin.module';
     AdminModule,
     OptionsModule,
     AuthModule,
+    DataModule,
   ],
   controllers: [AppController],
   providers: [AppService],
